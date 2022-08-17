@@ -14,7 +14,6 @@ while true do
             id = data:match('id:(%d+)')
         else
             love.thread.getChannel('incoming'):push(data)
-            print(data)
         end
     end
 

@@ -10,8 +10,9 @@ local clientState, serverState
 
 function love.load()
     math.randomseed(os.time())
-    clientState =
-        SynchronisedTable(
+    network =
+        Network(
+        isServer,
         {
             pos = {
                 x = dim.width * math.random(),
@@ -24,29 +25,24 @@ function love.load()
             }
         }
     )
-    network = Network(isServer, clientState:serialiseUpdates())
 end
 
 function love.update(dt)
+    local state = network:getLocalState()
     if love.keyboard.isDown('s') then
-        clientState.pos.y = clientState.pos.y + 1
+        state.pos.y = state.pos.y + 1
     end
     if love.keyboard.isDown('w') then
-        clientState.pos.y = clientState.pos.y - 1
+        state.pos.y = state.pos.y - 1
     end
     if love.keyboard.isDown('d') then
-        clientState.pos.x = clientState.pos.x + 1
+        state.pos.x = state.pos.x + 1
     end
     if love.keyboard.isDown('a') then
-        clientState.pos.x = clientState.pos.x - 1
+        state.pos.x = state.pos.x - 1
     end
 
-    local updates = clientState:serialiseUpdates()
-    if updates ~= '' then
-        network:send(updates)
-    end
-
-    network:receiveState()
+    network:update()
 end
 
 local playerSize = 20

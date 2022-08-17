@@ -239,7 +239,6 @@ local function deserialiseUpdatesString(str, i)
             if sep == ',' then
                 i = i + 1
             elseif sep ~= ']' then
-                print(str:sub(1, i), sep, i)
                 error('Malformed updates string at character ' .. i)
             end
         end
