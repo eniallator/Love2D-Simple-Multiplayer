@@ -9,7 +9,6 @@ local connections = {}
 local state =
     SynchronisedTable(
     {
-        hasState = true,
         players = {},
         backgroundColour = {
             r = 0.2,
