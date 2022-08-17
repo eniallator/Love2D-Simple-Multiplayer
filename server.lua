@@ -1,52 +1,61 @@
+local SynchronisedTable = require 'SynchronisedTable'
 local socket = require 'socket'
 local udp = socket.udp()
 
 udp:settimeout(0)
 udp:setsockname('localhost', 3000)
 
-local gameTable = {}
+local connections = {}
+local state =
+    SynchronisedTable(
+    {
+        hasState = true,
+        players = {},
+        backgroundColour = {
+            r = 0.2,
+            g = 0.3,
+            b = 0.4
+        }
+    }
+)
 local id = 1
 
 while true do
     local data, ip, port = udp:receivefrom()
     if data then
-        if data == "connect" then
-            gameTable[tostring(id)] = {
+        if data == 'connect' then
+            connections[tostring(id)] = {
+                initialized = false,
                 ip = ip,
                 port = port,
-                x = math.floor(math.random() * 800),
-                y = math.floor(math.random() * 600)
+                sendFullState = true,
+                state = SynchronisedTable()
             }
-            udp:sendto("id:" .. tostring(id), ip, port)
-            print("connected id:", id)
+            udp:sendto('id:' .. tostring(id), ip, port)
+            print('connected id:', id)
             id = id + 1
         else
-            local key
-            key, data = data:match("(%d+):(.*)")
-            if data == "disconnect" then
-                gameTable[key] = nil
-            elseif data == "s" then
-                gameTable[key].y = gameTable[key].y + 1
-            elseif data == "w" then
-                gameTable[key].y = gameTable[key].y - 1
-            elseif data == "d" then
-                gameTable[key].x = gameTable[key].x + 1
-            elseif data == "a" then
-                gameTable[key].x = gameTable[key].x - 1
+            local key, data = data:match('(%d+):(.*)')
+            connections[key].state:deserialiseUpdates(data)
+            if not connections[key].initialized then
+                state.players[key] = connections[key].state
+                connections[key].initialized = true
             end
         end
 
-        local msg = ''
-        for _, pos in pairs(gameTable) do
-            if msg ~= '' then
-                msg = msg .. 'p'
+        local updates, fullState = state:serialiseUpdates()
+        for id, connection in pairs(connections) do
+            if connection.initialized then
+                if connection.sendFullState then
+                    if fullState == nil then
+                        fullState = state:serialiseUpdates(true, true)
+                    end
+                    udp:sendto(fullState, connection.ip, connection.port)
+                    connection.sendFullState = false
+                else
+                    udp:sendto(updates, connection.ip, connection.port)
+                end
             end
-            msg = msg .. 'x' .. pos.x .. 'y' .. pos.y
-        end 
-
-        print(msg)
-        for id, state in pairs(gameTable) do
-            udp:sendto(msg, state.ip, state.port)
         end
     end
 end
