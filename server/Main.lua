@@ -28,7 +28,7 @@ return function(cfg)
     function main:updateTick(localState, connections)
         -- All server-side game logic happening here
         setPlayerTable(localState, connections)
-        localState.backgroundColour.r = (localState.backgroundColour.r + 0.05) % 1
+        localState.backgroundColour.r = (localState.backgroundColour.r + 0.01) % 1
     end
 
     return main

@@ -141,7 +141,7 @@ end
 
 local function serialiseValue(value)
     if type(value) == 'string' then
-        return '"' .. value:gsub('["\\]', '\\"') .. '"'
+        return '"' .. value:gsub('(["\\])', '\\%1') .. '"'
     end
     return tostring(value)
 end
