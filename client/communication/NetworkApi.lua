@@ -28,7 +28,9 @@ return function(initialLocalState)
     function networkApi:update()
         local msg = self.__inChannel:pop()
         while msg do
-            if msg ~= '' then
+            if msg:match('^id:') then
+                self.id = msg:match('id:(%d+)')
+            elseif msg ~= '' then
                 print('CLIENT got:', msg)
                 self.__receivedState:deserialiseUpdates(msg)
                 self.__hasReceivedState = true

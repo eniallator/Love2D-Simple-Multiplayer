@@ -14,8 +14,9 @@ local id
 while true do
     data, msg = udp:receive()
     if data then
-        if data:match('id:') then
+        if data:match('^id:') then
             id = data:match('id:(%d+)')
+            inChannel:push(data)
         else
             inChannel:push(data)
         end

@@ -53,15 +53,26 @@ return function(cfg)
             receivedState.backgroundColour.b
         )
         love.graphics.rectangle('fill', 0, 0, dim.width, dim.height)
+
+        love.graphics.setColor(localState.colour.r, localState.colour.g, localState.colour.b)
+        love.graphics.rectangle(
+            'fill',
+            localState.pos.x - playerSize / 2,
+            localState.pos.y - playerSize / 2,
+            playerSize,
+            playerSize
+        )
         for id, state in receivedState.players:subTablePairs() do
-            love.graphics.setColor(state.colour.r, state.colour.g, state.colour.b)
-            love.graphics.rectangle(
-                'fill',
-                state.pos.x - playerSize / 2,
-                state.pos.y - playerSize / 2,
-                playerSize,
-                playerSize
-            )
+            if id ~= self.networkApi.id then
+                love.graphics.setColor(state.colour.r, state.colour.g, state.colour.b)
+                love.graphics.rectangle(
+                    'fill',
+                    state.pos.x - playerSize / 2,
+                    state.pos.y - playerSize / 2,
+                    playerSize,
+                    playerSize
+                )
+            end
         end
     end
 
