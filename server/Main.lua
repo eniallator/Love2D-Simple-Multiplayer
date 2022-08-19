@@ -1,9 +1,9 @@
 local NetworkApi = require 'server.communication.NetworkApi'
-local GameLoop = require 'common.GameLoop'
+local GameLoopController = require 'common.GameLoopController'
 
 return function(cfg)
     local main =
-        GameLoop(
+        GameLoopController(
         NetworkApi(
             {
                 backgroundColour = {

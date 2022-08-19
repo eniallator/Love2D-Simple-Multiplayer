@@ -1,5 +1,5 @@
 local NetworkApi = require 'client.communication.NetworkApi'
-local GameLoop = require 'common.GameLoop'
+local GameLoopController = require 'common.GameLoopController'
 
 local dim = {}
 dim.width, dim.height = love.graphics.getDimensions()
@@ -8,7 +8,7 @@ dim.width, dim.height = love.graphics.getDimensions()
 --   so no need to define own engine logic, since it can use Love2D's engine
 return function(cfg)
     local main =
-        GameLoop(
+        GameLoopController(
         NetworkApi(
             {
                 pos = {
@@ -62,6 +62,7 @@ return function(cfg)
             playerSize,
             playerSize
         )
+
         for id, state in receivedState.players:subTablePairs() do
             if id ~= self.networkApi.id then
                 love.graphics.setColor(state.colour.r, state.colour.g, state.colour.b)

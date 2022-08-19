@@ -1,13 +1,13 @@
 -- Base class which is inherited from for the update tick method
 return function(networkApi, cfg)
-    local gameLoop = {}
+    local gameLoopController = {}
 
-    gameLoop.networkApi = networkApi
-    gameLoop.tickLength = 1 / cfg.tps
+    gameLoopController.networkApi = networkApi
+    gameLoopController.tickLength = 1 / cfg.tps
 
-    gameLoop.dtAccumulated = 0
+    gameLoopController.dtAccumulated = 0
 
-    function gameLoop:update(dt)
+    function gameLoopController:update(dt)
         self.dtAccumulated = self.dtAccumulated + dt
         local ticked = false
         while self.dtAccumulated > self.tickLength do
@@ -23,11 +23,11 @@ return function(networkApi, cfg)
         self.networkApi:update()
     end
 
-    function gameLoop:updateTick(localState, receivedState)
+    function gameLoopController:updateTick(localState, receivedState)
         error('Must define an updateTick method on the game loop sub class')
     end
 
-    function gameLoop:draw()
+    function gameLoopController:draw()
         self:drawWithDt(
             self.networkApi:getLocalState(),
             self.networkApi:getReceivedState(),
@@ -35,9 +35,9 @@ return function(networkApi, cfg)
         )
     end
 
-    function gameLoop:drawWithDt(localState, receivedState, dt)
+    function gameLoopController:drawWithDt(localState, receivedState, dt)
         error('Must define a draw method on the game loop sub class')
     end
 
-    return gameLoop
+    return gameLoopController
 end
