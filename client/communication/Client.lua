@@ -1,9 +1,13 @@
 local socket = require 'socket'
 local udp = socket.udp()
+local cfg = require 'conf'
 
 udp:settimeout(0)
-udp:setpeername('localhost', 3000)
+udp:setpeername(cfg.communication.address, cfg.communication.port)
 udp:send('connect')
+
+local inChannel = love.thread.getChannel('CLIENT_IN')
+local outChannel = love.thread.getChannel('CLIENT_OUT')
 
 local id
 
@@ -13,15 +17,15 @@ while true do
         if data:match('id:') then
             id = data:match('id:(%d+)')
         else
-            love.thread.getChannel('incoming'):push(data)
+            inChannel:push(data)
         end
     end
 
     if id then
-        local msg = love.thread.getChannel('outgoing'):pop()
+        local msg = outChannel:pop()
         while msg do
             udp:send(id .. ':' .. msg)
-            msg = love.thread.getChannel('outgoing'):pop()
+            msg = outChannel:pop()
         end
     end
 end

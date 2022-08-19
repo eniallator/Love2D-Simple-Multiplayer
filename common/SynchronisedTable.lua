@@ -47,7 +47,7 @@ local function SynchronisedMetaTable(class)
             else
                 mt.__subTables[key] = mt.__class(value)
             end
-        elseif DATA_VALUE_TYPES[valType] then
+        elseif DATA_VALUE_TYPES[valType] or valType == 'nil' then
             -- Trigger update if data value changed
             mt.__dataChanged = mt.__dataChanged or mt.__data[key] ~= value
             mt.__subTables[key] = mt.__subTables[key] ~= nil and SUB_TABLE_DELETED or nil
