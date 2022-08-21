@@ -8,6 +8,7 @@
 ## Packet Loss
 
 - Add an age to each state data collection
-- The other side will store the last known age, then send that back so the original state can then see whats been updated
-- Both sides will use the tick age
+  - This is updated whenever the data collection is updated
+- The other side will store the last known age, then send that back so the original state can then see whats been updated since that last known age
+- Both server and client will do this, as packet loss can occur on either side
 - This then handles packet loss, as if a packet gets lost, the last known age doesn't update, and then the client requests the updates, which includes the lost packet's data.
