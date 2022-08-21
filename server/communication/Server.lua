@@ -39,26 +39,26 @@ while true do
         local key = addressToIdMap[address]
         local headers, payload = packet.deserialise(data)
         if key == nil then
-            connections[id] = {
+            key = id
+            connections[key] = {
                 id = id,
                 ip = ip,
                 port = port,
                 clientTickAge = -1,
                 lastServerTickAge = -1,
+                sendFullState = true,
                 state = {}
             }
-            addressToIdMap[address] = id
-            print('connected id:', id)
+            addressToIdMap[address] = key
+            print('connected id:', key)
             id = id + 1
         else
-            connections[key].clientTickAge, connections[key].lastServerTickAge =
-                tonumber(headers.clientTickAge or connections[key].clientTickAge),
-                tonumber(headers.serverTickAge or connections[key].lastServerTickAge)
-            if headers.tickAge then
-                connections[key].tickAge = tonumber(headers.tickAge)
-            end
-            connections[key].state:deserialiseUpdates(payload, tickAge)
+            connections[key].sendFullState = false
         end
+        connections[key].clientTickAge, connections[key].lastServerTickAge =
+            tonumber(headers.clientTickAge or connections[key].clientTickAge),
+            tonumber(headers.serverTickAge or connections[key].lastServerTickAge)
+        connections[key].state:deserialiseUpdates(payload, tickAge)
     end
 
     if ticked then
@@ -66,14 +66,14 @@ while true do
         inChannel:push(connections:serialiseUpdates(tickAge - 1))
         local updatesLookup = {}
         for address, connection in connections.subTablePairs() do
-            if updatesLookup[connection.lastServerTickAge] == nil then
-                updatesLookup[connection.lastServerTickAge] =
-                    serverState:serialiseUpdates(connection.lastServerTickAge - 1)
+            local updatesKey = connection.sendFullState and 'fullState' or connection.lastServerTickAge
+            if updatesLookup[updatesKey] == nil then
+                updatesLookup[updatesKey] = serverState:serialiseUpdates(connection.lastServerTickAge - 1)
             end
             udp:sendto(
                 packet.serialise(
                     {id = connection.id, serverTickAge = tickAge, lastClientTickAge = connection.clientTickAge},
-                    updatesLookup[connection.lastServerTickAge]
+                    updatesLookup[updatesKey]
                 ),
                 connection.ip,
                 connection.port
