@@ -20,17 +20,14 @@ return function(cfg)
     local function setPlayerTable(localState, connections)
         if connections ~= nil then
             localState.players = {}
-            for _, connection in connections.subTablePairs() do
-                localState.players[connection.id] = connection.state
+            for id, connection in connections.subTablePairs() do
+                localState.players[id] = connection.state
             end
         end
     end
 
     function main:updateTick(localState, connections)
         -- All server-side game logic happening here
-        if connections == nil then
-            return
-        end
         setPlayerTable(localState, connections)
         localState.backgroundColour.r = (localState.backgroundColour.r + 0.01) % 1
     end

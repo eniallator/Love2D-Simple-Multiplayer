@@ -12,3 +12,7 @@
 - The other side will store the last known age, then send that back so the original state can then see whats been updated since that last known age
 - Both server and client will do this, as packet loss can occur on either side
 - This then handles packet loss, as if a packet gets lost, the last known age doesn't update, and then the client requests the updates, which includes the lost packet's data.
+
+## TODO:
+
+- Currently players are a tick behind from the server, so need to figure out how to deal with that

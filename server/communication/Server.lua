@@ -13,19 +13,19 @@ udp:setsockname(cfg.communication.address, cfg.communication.port)
 local inChannel = love.thread.getChannel('SERVER_IN')
 local outChannel = love.thread.getChannel('SERVER_OUT')
 
+local addressToIdMap = {}
 local connections = SynchronisedTable()
-local connectionsAge = -1
 -- Keeping own state table, for the case where one of the clients needs the full state
 --   and the other thread doesn't know to send the full state or not
 -- Also for the case of packet loss
 local serverState = SynchronisedTable()
 local id, tickAge = 1
-local updateClients = false
+local ticked = false
 
 while true do
     local msg, updates = outChannel:pop()
     while msg do
-        updateClients = true
+        ticked = true
         tickAge, updates = msg:match('^(%d+):(.*)')
         serverState:deserialiseUpdates(updates)
         msg = outChannel:pop()
@@ -34,12 +34,12 @@ while true do
 
     local data, ip, port = udp:receivefrom()
     if data then
-        connectionsAge = connectionsAge + 1
-        connections:setAge(connectionsAge)
-        local key = ip .. ':' .. tostring(port)
+        connections:setAge(tickAge)
+        local address = ip .. ':' .. tostring(port)
+        local key = addressToIdMap[address]
         local headers, payload = packet.deserialise(data)
-        if connections[key] == nil then
-            connections[key] = {
+        if key == nil then
+            connections[id] = {
                 id = id,
                 ip = ip,
                 port = port,
@@ -47,26 +47,28 @@ while true do
                 lastServerTickAge = -1,
                 state = {}
             }
+            addressToIdMap[address] = id
             print('connected id:', id)
             id = id + 1
-        elseif data then
+        else
             connections[key].clientTickAge, connections[key].lastServerTickAge =
                 tonumber(headers.clientTickAge or connections[key].clientTickAge),
                 tonumber(headers.serverTickAge or connections[key].lastServerTickAge)
             if headers.tickAge then
                 connections[key].tickAge = tonumber(headers.tickAge)
             end
-            connections[key].state:deserialiseUpdates(payload)
+            connections[key].state:deserialiseUpdates(payload, tickAge)
         end
-        inChannel:push(connections:serialiseUpdates(connectionsAge - 1))
     end
 
-    if updateClients then
-        updateClients = false
+    if ticked then
+        ticked = false
+        inChannel:push(connections:serialiseUpdates(tickAge - 1))
         local updatesLookup = {}
         for address, connection in connections.subTablePairs() do
             if updatesLookup[connection.lastServerTickAge] == nil then
-                updatesLookup[connection.lastServerTickAge] = serverState:serialiseUpdates(connection.lastServerTickAge)
+                updatesLookup[connection.lastServerTickAge] =
+                    serverState:serialiseUpdates(connection.lastServerTickAge - 1)
             end
             udp:sendto(
                 packet.serialise(

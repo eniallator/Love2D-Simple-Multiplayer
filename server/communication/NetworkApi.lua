@@ -21,7 +21,7 @@ return function(initialLocalState)
     end
 
     function networkApi:flushUpdates(age, force)
-        self:send(tostring(age) .. ':' .. self.__localState:serialiseUpdates(self.__lastAge, force))
+        self:send(tostring(age) .. ':' .. self.__localState:serialiseUpdates(self.__lastAge - 1, force))
         self.__lastAge = age
     end
 
@@ -39,7 +39,7 @@ return function(initialLocalState)
         while msg do
             -- print('SERVER got:', msg)
             if msg ~= '' then
-                self.__receivedState:deserialiseUpdates(msg)
+                self.__receivedState:deserialiseUpdates(msg, self.tickAge)
                 self.__hasReceivedState = true
             end
             msg = self.__inChannel:pop()

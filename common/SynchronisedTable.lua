@@ -55,7 +55,7 @@ local function SynchronisedMetaTable(class, initialAge)
 
     function mt.__index(tbl, key)
         local metaPrefix = 'meta_'
-        if key:sub(1, #metaPrefix) == metaPrefix then
+        if tostring(key):sub(1, #metaPrefix) == metaPrefix then
             return mt[key:sub(#metaPrefix + 1)]
         end
         return mt.__data[key] or mt.__subTables[key] or mt.__otherTypes[key]
@@ -76,7 +76,7 @@ local function SynchronisedMetaTable(class, initialAge)
             if getmetatable(value) == mt.__metatable then
                 mt.__subTables[key] = value
             else
-                mt.__subTables[key] = mt.__class(value)
+                mt.__subTables[key] = mt.__class(value, mt.__data[AGE_KEY])
             end
         elseif DATA_VALUE_TYPES[valType] then
             -- Trigger update if data value changed
@@ -92,7 +92,7 @@ local function SynchronisedMetaTable(class, initialAge)
 
     function mt.serialiseUpdates(age, force)
         local dataStr = ''
-        if age < mt.__data[AGE_KEY] or force then
+        if age <= mt.__data[AGE_KEY] or force then
             dataStr = ''
             for key, value in pairs(mt.__data or {}) do
                 if #dataStr > 0 then
@@ -178,13 +178,6 @@ local function SynchronisedMetaTable(class, initialAge)
         return i
     end
 
-    function mt.clearUpdates()
-        mt.__dataChanged = false
-        for _, subTable in pairs(mt.__subTables) do
-            subTable.meta_clearUpdates()
-        end
-    end
-
     return mt
 end
 
@@ -215,10 +208,6 @@ local function SynchronisedTable(initialData, initialAge)
 
     function synchronisedTable:serialiseUpdates(age, force)
         return mt.serialiseUpdates(age, force)
-    end
-
-    function synchronisedTable:clearUpdates()
-        mt.clearUpdates()
     end
 
     function synchronisedTable:deserialiseUpdates(updatesString, age)

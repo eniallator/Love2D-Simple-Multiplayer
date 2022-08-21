@@ -21,7 +21,7 @@ return function(initialLocalState)
     end
 
     function networkApi:flushUpdates(age, force)
-        self:send(tostring(age) .. ':' .. self.__localState:serialiseUpdates(self.__lastAge, force))
+        self:send(tostring(age) .. ':' .. self.__localState:serialiseUpdates(self.__lastAge - 1, force))
         self.__lastAge = age
     end
 
