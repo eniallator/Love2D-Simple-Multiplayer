@@ -1,32 +1,44 @@
+local SynchronisedTable = require 'common.SynchronisedTable'
+local packet = require 'common.Packet'
 local socket = require 'socket'
 local udp = socket.udp()
 local cfg = require 'conf'
 
 udp:settimeout(0)
 udp:setpeername(cfg.communication.address, cfg.communication.port)
-udp:send('connect')
 
 local inChannel = love.thread.getChannel('CLIENT_IN')
 local outChannel = love.thread.getChannel('CLIENT_OUT')
 
-local id
+local tickAge, serverTickAge, serverLastClientTickAge = -1, -1, -1
+local clientState = SynchronisedTable()
+local updateServer = false
 
 while true do
+    local msg = outChannel:pop()
+    while msg do
+        updateServer = true
+        local updates
+        tickAge, updates = msg:match('^(%d+):(.*)')
+        clientState:deserialiseUpdates(updates)
+        msg = outChannel:pop()
+    end
+    tickAge = tonumber(tickAge)
+
     data, msg = udp:receive()
     if data then
-        if data:match('^id:') then
-            id = data:match('id:(%d+)')
-            inChannel:push(data)
-        else
-            inChannel:push(data)
-        end
+        local headers, payload = packet.deserialise(data)
+        serverTickAge, serverLastClientTickAge = tonumber(headers.serverTickAge), tonumber(headers.lastClientTickAge)
+        inChannel:push(headers.id .. ':' .. payload)
     end
 
-    if id then
-        local msg = outChannel:pop()
-        while msg do
-            udp:send(id .. ':' .. msg)
-            msg = outChannel:pop()
-        end
+    if updateServer then
+        updateServer = false
+        udp:send(
+            packet.serialise(
+                {clientTickAge = tickAge, serverTickAge = serverTickAge},
+                clientState:serialiseUpdates(serverLastClientTickAge)
+            )
+        )
     end
 end

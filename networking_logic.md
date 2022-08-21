@@ -4,3 +4,10 @@
 - Serialisation to create a tree like data structure
   - With no data: `outerTable[subTable1{}[],subTable2{}[]]`
   - With data: `outerTable{key1=value1,key2=value2}[subTable1{}[],subTable2{}[]]`
+
+## Packet Loss
+
+- Add an age to each state data collection
+- The other side will store the last known age, then send that back so the original state can then see whats been updated
+- Both sides will use the tick age
+- This then handles packet loss, as if a packet gets lost, the last known age doesn't update, and then the client requests the updates, which includes the lost packet's data.

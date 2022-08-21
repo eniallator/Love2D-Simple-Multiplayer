@@ -33,10 +33,13 @@ local function deserialiseValue(str, i)
     end
 end
 
-local function SynchronisedMetaTable(class)
+local function SynchronisedMetaTable(class, initialAge)
+    local SUB_TABLE_DELETED = '$DELETED'
+    local AGE_KEY = '__AGE'
+
     local mt = {
-        __dataChanged = true,
-        __data = {},
+        __newAge = initialAge or 0,
+        __data = {[AGE_KEY] = initialAge or 0},
         __otherTypes = {},
         __subTables = {},
         __metatable = 'SynchronisedTable',
@@ -46,10 +49,9 @@ local function SynchronisedMetaTable(class)
     local DATA_VALUE_TYPES = {
         number = true,
         boolean = true,
-        string = true
+        string = true,
+        ['nil'] = true
     }
-
-    local SUB_TABLE_DELETED = '$DELETED'
 
     function mt.__index(tbl, key)
         local metaPrefix = 'meta_'
@@ -60,19 +62,27 @@ local function SynchronisedMetaTable(class)
     end
 
     function mt.__newindex(tbl, key, value)
+        if key == AGE_KEY then
+            mt.__data[key] = value
+            return
+        end
         local valType = type(value)
         if valType == 'table' then
             -- Trigger update if overwriting a data value with a subTable
-            mt.__dataChanged = mt.__dataChanged or mt.__data[key] ~= nil
-            mt.__data[key] = nil
+            if mt.__data[key] ~= nil then
+                mt.__data[AGE_KEY] = mt.__newAge
+                mt.__data[key] = nil
+            end
             if getmetatable(value) == mt.__metatable then
                 mt.__subTables[key] = value
             else
                 mt.__subTables[key] = mt.__class(value)
             end
-        elseif DATA_VALUE_TYPES[valType] or valType == 'nil' then
+        elseif DATA_VALUE_TYPES[valType] then
             -- Trigger update if data value changed
-            mt.__dataChanged = mt.__dataChanged or mt.__data[key] ~= value
+            if mt.__data[key] ~= value then
+                mt.__data[AGE_KEY] = mt.__newAge
+            end
             mt.__subTables[key] = mt.__subTables[key] ~= nil and SUB_TABLE_DELETED or nil
             mt.__data[key] = value
         else
@@ -80,9 +90,9 @@ local function SynchronisedMetaTable(class)
         end
     end
 
-    function mt.serialiseUpdates(peek, force)
+    function mt.serialiseUpdates(age, force)
         local dataStr = ''
-        if mt.__dataChanged or force then
+        if age < mt.__data[AGE_KEY] or force then
             dataStr = ''
             for key, value in pairs(mt.__data or {}) do
                 if #dataStr > 0 then
@@ -100,7 +110,7 @@ local function SynchronisedMetaTable(class)
             if value == SUB_TABLE_DELETED and not peek then
                 mt.__subTables[key] = nil
             elseif value ~= SUB_TABLE_DELETED then
-                serialisedValue = value.meta_serialiseUpdates(peek, force) or ''
+                serialisedValue = value.meta_serialiseUpdates(age, force) or ''
             end
             if serialisedValue ~= '' then
                 if subTablesStr ~= '' then
@@ -109,17 +119,16 @@ local function SynchronisedMetaTable(class)
                 subTablesStr = subTablesStr .. key .. serialisedValue
             end
         end
-        mt.__dataChanged = peek and mt.__dataChanged or false
         return dataStr .. (subTablesStr == '' and '' or '[' .. subTablesStr .. ']')
     end
 
-    function mt.deserialiseUpdates(str, i)
+    function mt.deserialiseUpdates(str, age, i)
         i = i or 1
         if str:sub(i, i) == '{' then
             mt.__data = {}
             i = i + 1
             while str:sub(i, i) ~= '}' do
-                local key, value = str:sub(i):match('%w+')
+                local key, value = str:sub(i):match('^[%w_]+')
                 i = i + #key
                 if str:sub(i, i) ~= '=' then
                     error(
@@ -132,15 +141,21 @@ local function SynchronisedMetaTable(class)
                 if str:sub(i, i) == ',' then
                     i = i + 1
                 end
-                mt.__data[key] = value
+                if key == AGE_KEY then
+                    age = age or value
+                else
+                    mt.__data[key] = value
+                end
             end
             i = i + 1
-            mt.__dataChanged = true
+            if age then
+                mt.__data[AGE_KEY] = age
+            end
         end
         if str:sub(i, i) == '[' then
             i = i + 1
             while str:sub(i, i) ~= ']' do
-                local subTableKey = str:sub(i):match('^%w+')
+                local subTableKey = str:sub(i):match('^[^,%]{%[]+')
                 i = i + #subTableKey
                 if str:sub(i, i + #SUB_TABLE_DELETED) == SUB_TABLE_DELETED then
                     i = i + #SUB_TABLE_DELETED
@@ -149,7 +164,7 @@ local function SynchronisedMetaTable(class)
                     if mt.__subTables[subTableKey] == nil then
                         mt.__subTables[subTableKey] = mt.__class()
                     end
-                    i = mt.__subTables[subTableKey].meta_deserialiseUpdates(str, i)
+                    i = mt.__subTables[subTableKey].meta_deserialiseUpdates(str, age, i)
                 end
                 local sep = str:sub(i, i)
                 if sep == ',' then
@@ -173,14 +188,21 @@ local function SynchronisedMetaTable(class)
     return mt
 end
 
-local function SynchronisedTable(initialData)
+local function SynchronisedTable(initialData, initialAge)
     local synchronisedTable = {}
-    local mt = SynchronisedMetaTable(SynchronisedTable)
+    local mt = SynchronisedMetaTable(SynchronisedTable, initialAge)
     setmetatable(synchronisedTable, mt)
 
     if initialData ~= nil then
         for key, value in pairs(initialData) do
             synchronisedTable[key] = value
+        end
+    end
+
+    function synchronisedTable:setAge(age)
+        mt.__newAge = age
+        for _, subTable in pairs(mt.__subTables) do
+            subTable:setAge(age)
         end
     end
 
@@ -191,16 +213,16 @@ local function SynchronisedTable(initialData)
         return pairs(mt.__subTables)
     end
 
-    function synchronisedTable:serialiseUpdates(peek, force)
-        return mt.serialiseUpdates(peek, force)
+    function synchronisedTable:serialiseUpdates(age, force)
+        return mt.serialiseUpdates(age, force)
     end
 
     function synchronisedTable:clearUpdates()
         mt.clearUpdates()
     end
 
-    function synchronisedTable:deserialiseUpdates(updatesString)
-        if mt.deserialiseUpdates(updatesString) < #updatesString then
+    function synchronisedTable:deserialiseUpdates(updatesString, age)
+        if mt.deserialiseUpdates(updatesString, age) < #updatesString then
             error("Didn't process entire updatesString")
         end
     end
