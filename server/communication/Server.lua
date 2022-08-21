@@ -39,7 +39,6 @@ while true do
         local key = ip .. ':' .. tostring(port)
         local headers, payload = packet.deserialise(data)
         if connections[key] == nil then
-            -- Packet loss for the connect message - handle that
             connections[key] = {
                 id = id,
                 ip = ip,

@@ -1,8 +1,8 @@
 local SynchronisedTable = require 'common.SynchronisedTable'
 local packet = require 'common.Packet'
 local socket = require 'socket'
-local udp = socket.udp()
 local cfg = require 'conf'
+local udp = socket.udp()
 
 udp:settimeout(0)
 udp:setpeername(cfg.communication.address, cfg.communication.port)
