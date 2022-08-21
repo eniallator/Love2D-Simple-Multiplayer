@@ -3,7 +3,7 @@ function love.conf(t)
 end
 
 return {
-    tps = 20,
+    tps = 30,
     launchServer = true,
     communication = {
         address = 'localhost',
