@@ -33,7 +33,7 @@ return function(initialLocalState)
 
     function networkApi:flushUpdates(age, force)
         local headers = {clientTickAge = age, serverTickAge = self.serverTickAge}
-        local payload = self.__localState:serialiseUpdates(self.serverLastClientTickAge, force)
+        local payload = self.__localState:serialiseUpdates(self.serverLastClientTickAge - 1, force)
         -- print('CLIENT sent:', payload)
         udp:send(packet.serialise(headers, payload))
     end
