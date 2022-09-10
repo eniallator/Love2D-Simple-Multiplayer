@@ -13,17 +13,12 @@ return function(initialLocalState)
         self.__localState:setAge(age)
     end
 
+    function baseNetworkApi:checkforUpdates()
+        error('NetworkApi must implement a checkForUpdates method')
+    end
+
     function baseNetworkApi:flushUpdates(age, force)
-        self:send(tostring(age) .. ':' .. self.__localState:serialiseUpdates(self.__lastAge - 1, force))
-        self.__lastAge = age
-    end
-
-    function baseNetworkApi:send(msg)
-        error('NetworkApi must implement a send method')
-    end
-
-    function baseNetworkApi:update()
-        error('NetworkApi must implement an update method')
+        error('NetworkApi must implement a flushUpdates method')
     end
 
     function baseNetworkApi:getLocalState()

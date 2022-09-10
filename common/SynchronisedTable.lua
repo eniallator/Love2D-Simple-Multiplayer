@@ -107,9 +107,9 @@ local function SynchronisedMetaTable(class, initialAge)
         local subTablesStr = ''
         for key, value in pairs(mt.__subTables or {}) do
             local serialisedValue = value
-            if value == SUB_TABLE_DELETED and not peek then
+            if value == SUB_TABLE_DELETED then
                 mt.__subTables[key] = nil
-            elseif value ~= SUB_TABLE_DELETED then
+            else
                 serialisedValue = value.meta_serialiseUpdates(age, force) or ''
             end
             if serialisedValue ~= '' then

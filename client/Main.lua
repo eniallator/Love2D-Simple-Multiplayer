@@ -27,6 +27,8 @@ return function(cfg)
 
     function main:updateTick(localState, receivedState)
         -- All client-side game logic happening here
+        localState.colour.r = (localState.colour.r + 0.01) % 1
+
         if love.keyboard.isDown('s') then
             localState.pos.y = localState.pos.y + 5
         end

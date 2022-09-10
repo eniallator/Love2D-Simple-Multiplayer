@@ -9,6 +9,8 @@ return function(networkApi, cfg)
     gameLoopController.age = 0
 
     function gameLoopController:update(dt)
+        self.networkApi:checkForUpdates(self.age - 1)
+
         self.dtAccumulated = self.dtAccumulated + dt
         local ticked = false
         while self.dtAccumulated > self.tickLength do
@@ -22,8 +24,6 @@ return function(networkApi, cfg)
         if ticked then
             self.networkApi:flushUpdates(self.age)
         end
-
-        self.networkApi:update()
     end
 
     function gameLoopController:updateTick(localState, receivedState)
